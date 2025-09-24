@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD with Node + Express + JSON</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    input, button { margin: 5px; padding: 5px; }
+    .item { margin: 5px 0; padding: 5px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>CRUD App (JSON Database)</h1>
+
+  <h3>Add Item</h3>
+  <input id="name" placeholder="Item name">
+  <input id="quantity" type="number" placeholder="Quantity">
+  <button onclick="addItem()">Add</button>
+
+  <h3>Items</h3>
+  <div id="items"></div>
+
+  <script>
+    const apiUrl = "/items";
+
+    async function loadItems() {
+      try {
+        const res = await fetch(apiUrl);
+        const items = await res.json();
+        const container = document.getElementById("items");
+        container.innerHTML = "";
+        items.forEach(item => {
+          container.innerHTML += `
+            <div class="item">
+              <b>${item.name}</b> (Qty: ${item.quantity})
+              <button onclick="deleteItem(${item.id})">Delete</button>
+              <button onclick="updateItem(${item.id})">Update</button>
+            </div>
+          `;
+        });
+      } catch (err) {
+        console.error("Error loading items:", err);
+      }
+    }
+
+    async function addItem() {
+      const name = document.getElementById("name").value.trim();
+      const quantity = parseInt(document.getElementById("quantity").value);
+
+      if (!name || isNaN(quantity)) {
+        alert("⚠ Please enter a valid name and quantity.");
+        return;
+      }
+
+      try {
+        const res = await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, quantity })
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          console.error("Error adding item:", error);
+          alert("❌ Failed to add item. Check console for details.");
+          return;
+        }
+
+        document.getElementById("name").value = "";
+        document.getElementById("quantity").value = "";
+        loadItems();
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    }
+
+    async function deleteItem(id) {
+      try {
+        await fetch(`${apiUrl}/${id}`, { method: "DELETE" });
+        loadItems();
+      } catch (err) {
+        console.error("Error deleting item:", err);
+      }
+    }
+
+    async function updateItem(id) {
+      const newQuantity = prompt("Enter new quantity:");
+      if (newQuantity) {
+        try {
+          await fetch(`${apiUrl}/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ quantity: parseInt(newQuantity) })
+          });
+          loadItems();
+        } catch (err) {
+          console.error("Error updating item:", err);
+        }
+      }
+    }
+
+    // Load items when page opens
+    loadItems();
+  </script>
+</body>
+</html>
